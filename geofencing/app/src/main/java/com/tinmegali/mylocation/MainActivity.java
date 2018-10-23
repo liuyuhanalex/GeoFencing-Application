@@ -1,6 +1,9 @@
 package com.tinmegali.mylocation;
 
 import android.Manifest;
+
+import java.util.Date;
+import java.util.Timer;
 import android.app.PendingIntent;
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -65,9 +68,15 @@ public class MainActivity extends AppCompatActivity
             GoogleMap.OnMarkerClickListener,
             SensorEventListener,
             ResultCallback<Status> {
+
+    private String lastlabel = "Still";
+    private Long timerecorder = System.currentTimeMillis();
+    private Long interval;
+
     //for step count
     SensorManager sensorManager;
     boolean running = false;
+    int TotalStep=0;
 
     //step count end
     private static final String TAG = MainActivity.class.getSimpleName();
@@ -85,7 +94,7 @@ public class MainActivity extends AppCompatActivity
     private TextView textView3;
     private ImageView imageView;
 
-    private LatLng library = new LatLng(42.2733866,-71.8043197);
+    private LatLng library = new LatLng(42.2741312,-71.8071257);
     private LatLng FullerLabs = new LatLng(42.275063,-71.8086925);
 
     private static final String NOTIFICATION_MSG = "NOTIFICATION MSG";
@@ -392,7 +401,7 @@ public class MainActivity extends AppCompatActivity
 
     private static final long GEO_DURATION = 60 * 60 * 1000;
     private static final String GEOFENCE_REQ_ID = "My Geofence";
-    private static final float GEOFENCE_RADIUS = 100.0f; // in meters
+    private static final float GEOFENCE_RADIUS = 30.0f; // in meters
 
     // Create a Geofence
     private Geofence createGeofence( LatLng latLng, float radius ) {
@@ -423,6 +432,7 @@ public class MainActivity extends AppCompatActivity
             return geoFencePendingIntent;
 
         Intent intent = new Intent( this, GeofenceTrasitionService.class);
+        intent.putExtra("Step",TotalStep);
         return PendingIntent.getService(
                 this, GEOFENCE_REQ_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT );
     }
@@ -550,7 +560,7 @@ public class MainActivity extends AppCompatActivity
                 break;
             }
             default: {
-                label = getString(R.string.activity_unknown);
+                label = getString(R.string.activity_still);
                 break;
             }
         }
@@ -558,14 +568,19 @@ public class MainActivity extends AppCompatActivity
         Log.e(TAG, "User activity: " + label + ", Confidence: " + confidence);
 
         if (confidence > Constants.CONFIDENCE) {
-            //do something here
-            textView3.setText("Your are "+label);
-            if(label=="Running"){
-                imageView.setImageResource(R.drawable.running);
-            }else if(label=="walking"){
-                imageView.setImageResource(R.drawable.walking);
-            }else{
-                imageView.setImageResource(R.drawable.still);
+            if(label!=lastlabel){
+                textView3.setText("Your are "+label);
+                interval = System.currentTimeMillis()-timerecorder;
+                Toast.makeText(this,"You have "+lastlabel +" for "+(interval/1000)+" seconds",Toast.LENGTH_SHORT).show();
+                timerecorder = System.currentTimeMillis();
+                if(label==getString(R.string.activity_running)){
+                    imageView.setImageResource(R.drawable.running);
+                }else if(label==getString(R.string.activity_walking)){
+                    imageView.setImageResource(R.drawable.walking);
+                }else{
+                    imageView.setImageResource(R.drawable.still);
+                }
+                lastlabel = label;
             }
         }
     }
@@ -598,6 +613,7 @@ public class MainActivity extends AppCompatActivity
     public void onSensorChanged(SensorEvent event){
         if(running){
             Log.i("Important",String.valueOf(event.values[0]));
+            TotalStep = (int)event.values[0];
         }
     }
 

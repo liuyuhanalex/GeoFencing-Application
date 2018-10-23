@@ -22,6 +22,10 @@ import java.util.List;
 
 public class GeofenceTrasitionService extends IntentService {
 
+    private int EnterStep;
+    private int ExitStep;
+    private int TotalStep;
+
     private static final String TAG = GeofenceTrasitionService.class.getSimpleName();
 
     public static final int GEOFENCE_NOTIFICATION_ID = 0;
@@ -34,6 +38,7 @@ public class GeofenceTrasitionService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
         // Handling errors
+        TotalStep = intent.getIntExtra("Step",0);
         if ( geofencingEvent.hasError() ) {
             String errorMsg = getErrorString(geofencingEvent.getErrorCode() );
             Log.e( TAG, errorMsg );
@@ -63,8 +68,9 @@ public class GeofenceTrasitionService extends IntentService {
         }
 
         String status = null;
-        if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER )
+        if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ) {
             status = "Entering ";
+        }
         else if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT )
             status = "Exiting ";
         return status + TextUtils.join( ", ", triggeringGeofencesList);
