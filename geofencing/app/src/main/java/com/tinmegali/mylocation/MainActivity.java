@@ -69,7 +69,7 @@ public class MainActivity extends AppCompatActivity
             SensorEventListener,
             ResultCallback<Status> {
 
-    private String lastlabel = "Still";
+    private String lastlabel = "None";
     private Long timerecorder = System.currentTimeMillis();
     private Long interval;
 
@@ -77,8 +77,8 @@ public class MainActivity extends AppCompatActivity
     SensorManager sensorManager;
     boolean running = false;
     int TotalStep=0;
-
     //step count end
+
     private static final String TAG = MainActivity.class.getSimpleName();
 
     private GoogleMap map;
@@ -93,9 +93,12 @@ public class MainActivity extends AppCompatActivity
 
     private TextView textView3;
     private ImageView imageView;
+    private TextView textView;
+    private TextView textView2;
 
-    private LatLng library = new LatLng(42.2741312,-71.8071257);
-    private LatLng FullerLabs = new LatLng(42.275063,-71.8086925);
+    private LatLng Library = new LatLng(42.2742207,-71.8087328);
+    private LatLng FullerLabs = new LatLng(42.2750591,-71.8086925);
+
 
     private static final String NOTIFICATION_MSG = "NOTIFICATION MSG";
     // Create a Intent send by the notification
@@ -105,6 +108,7 @@ public class MainActivity extends AppCompatActivity
         return intent;
     }
 
+
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
@@ -113,6 +117,10 @@ public class MainActivity extends AppCompatActivity
         textLong = (TextView) findViewById(R.id.lon);
         textView3 = findViewById(R.id.textView3);
         imageView = findViewById(R.id.imageView2);
+
+        //Enter Times Counter
+        textView = findViewById(R.id.textView);
+        textView2 = findViewById(R.id.textView2);
 
         //Step counter
         sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
@@ -135,8 +143,13 @@ public class MainActivity extends AppCompatActivity
         };
 
         startTracking();
-        markerForGeofence(library);
-        startGeofence();
+        //initial the Counter Text
+        textView.setText("Visits to Fuller labs geoFence: "+GeofenceTrasitionService.FullerlabCounter);
+        textView2.setText("Visits to Library geoFence: "+GeofenceTrasitionService.LibraryCounter);
+
+        imageView.setImageResource(R.drawable.walking);
+        textView3.setText("Activity Detecting!Please wait!");
+
     }
 
     // Create GoogleApiClient instance
@@ -175,9 +188,10 @@ public class MainActivity extends AppCompatActivity
     }
 
     @Override
-    public boolean onOptionsItemSelected(MenuItem item) {
+    public boolean onOptionsItemSelected(MenuItem item){
         switch ( item.getItemId() ) {
             case R.id.geofence: {
+                markerForGeofence();
                 startGeofence();
                 return true;
             }
@@ -255,7 +269,7 @@ public class MainActivity extends AppCompatActivity
     public void onMapClick(LatLng latLng) {
         //Do nothing when onMapClick
         Log.d(TAG, "onMapClick("+latLng +")");
-        markerForGeofence(library);
+        markerForGeofence();
     }
 
     @Override
@@ -359,13 +373,13 @@ public class MainActivity extends AppCompatActivity
 
     private Marker geoFenceMarker;
     private Marker geoFenceMarker2;
-    private void markerForGeofence(LatLng latLng) {
-        Log.i(TAG, "markerForGeofence("+latLng+")");
-        String title = latLng.latitude + ", " + latLng.longitude;
+    private void markerForGeofence() {
+        String title = Library.latitude + ", " + Library.longitude;
         String title2 = FullerLabs.latitude+","+FullerLabs.longitude;
+
         // Define marker options
         MarkerOptions markerOptions = new MarkerOptions()
-                .position(library)
+                .position(Library)
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_ORANGE))
                 .title(title);
 
@@ -374,10 +388,6 @@ public class MainActivity extends AppCompatActivity
                 .icon(BitmapDescriptorFactory.defaultMarker(BitmapDescriptorFactory.HUE_BLUE))
                 .title(title2);
         if ( map!=null ) {
-            // Remove last geoFenceMarker
-//            if (geoFenceMarker != null)
-//                geoFenceMarker.remove();
-
             geoFenceMarker = map.addMarker(markerOptions);
             geoFenceMarker2 = map.addMarker(markerOptions2);
 
@@ -387,10 +397,10 @@ public class MainActivity extends AppCompatActivity
     // Start Geofence creation process
     private void startGeofence() {
         Log.i(TAG, "startGeofence()");
-        if( geoFenceMarker != null ) {
-            Geofence geofence = createGeofence( geoFenceMarker.getPosition(), GEOFENCE_RADIUS );
-            Geofence geofence2 = createGeofence(geoFenceMarker2.getPosition(),GEOFENCE_RADIUS);
-            GeofencingRequest geofenceRequest = createGeofenceRequest( geofence );
+        if( geoFenceMarker != null||geoFenceMarker2!=null ) {
+            Geofence geofence = createGeofence( geoFenceMarker.getPosition(), GEOFENCE_RADIUS ,1);
+            Geofence geofence2 = createGeofence(geoFenceMarker2.getPosition(),GEOFENCE_RADIUS,2);
+            GeofencingRequest geofenceRequest = createGeofenceRequest(geofence);
             GeofencingRequest geofenceRequest2 = createGeofenceRequest(geofence2);
             addGeofence(geofenceRequest2);
             addGeofence(geofenceRequest);
@@ -399,20 +409,30 @@ public class MainActivity extends AppCompatActivity
         }
     }
 
-    private static final long GEO_DURATION = 60 * 60 * 1000;
-    private static final String GEOFENCE_REQ_ID = "My Geofence";
-    private static final float GEOFENCE_RADIUS = 30.0f; // in meters
+    private static final long GEO_DURATION = 60 * 60 * 1000*10000;
+    private static final String GEOFENCE_REQ_ID = "Library";
+    private static final String GEOFENCE_REQ_ID2= "FullerLab";
+    private static final float GEOFENCE_RADIUS = 45.0f; // in meters
 
     // Create a Geofence
-    private Geofence createGeofence( LatLng latLng, float radius ) {
-        Log.d(TAG, "createGeofence");
-        return new Geofence.Builder()
-                .setRequestId(GEOFENCE_REQ_ID)
-                .setCircularRegion( latLng.latitude, latLng.longitude, radius)
-                .setExpirationDuration( GEO_DURATION )
-                .setTransitionTypes( Geofence.GEOFENCE_TRANSITION_ENTER
-                        | Geofence.GEOFENCE_TRANSITION_EXIT )
-                .build();
+    private Geofence createGeofence( LatLng latLng, float radius,int i ) {
+        if (i==1) {
+            return new Geofence.Builder()
+                    .setRequestId(GEOFENCE_REQ_ID)
+                    .setCircularRegion(latLng.latitude, latLng.longitude, radius)
+                    .setExpirationDuration(GEO_DURATION)
+                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER
+                            | Geofence.GEOFENCE_TRANSITION_EXIT)
+                    .build();
+        }else{
+            return new Geofence.Builder()
+                    .setRequestId(GEOFENCE_REQ_ID2)
+                    .setCircularRegion(latLng.latitude, latLng.longitude, radius)
+                    .setExpirationDuration(GEO_DURATION)
+                    .setTransitionTypes(Geofence.GEOFENCE_TRANSITION_ENTER
+                            | Geofence.GEOFENCE_TRANSITION_EXIT)
+                    .build();
+        }
     }
 
     // Create a Geofence Request
@@ -432,7 +452,6 @@ public class MainActivity extends AppCompatActivity
             return geoFencePendingIntent;
 
         Intent intent = new Intent( this, GeofenceTrasitionService.class);
-        intent.putExtra("Step",TotalStep);
         return PendingIntent.getService(
                 this, GEOFENCE_REQ_CODE, intent, PendingIntent.FLAG_UPDATE_CURRENT );
     }
@@ -505,7 +524,7 @@ public class MainActivity extends AppCompatActivity
             double lat = Double.longBitsToDouble( sharedPref.getLong( KEY_GEOFENCE_LAT, -1 ));
             double lon = Double.longBitsToDouble( sharedPref.getLong( KEY_GEOFENCE_LON, -1 ));
             LatLng latLng = new LatLng( lat, lon );
-            markerForGeofence(latLng);
+            markerForGeofence();
             drawGeofence();
         }
     }
@@ -544,7 +563,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void handleUserActivity(int type, int confidence) {
-        String label = getString(R.string.activity_unknown);
+        String label = getString(R.string.activity_still);
 
         switch (type) {
             case DetectedActivity.RUNNING: {
@@ -614,6 +633,9 @@ public class MainActivity extends AppCompatActivity
         if(running){
             Log.i("Important",String.valueOf(event.values[0]));
             TotalStep = (int)event.values[0];
+            //TODO:It's better to use Asyn Thread to finishi UI update
+            textView.setText("Visits to Fuller labs geoFence: "+GeofenceTrasitionService.FullerlabCounter);
+            textView2.setText("Visits to Library geoFence: "+GeofenceTrasitionService.LibraryCounter);
         }
     }
 

@@ -8,9 +8,16 @@ import android.app.TaskStackBuilder;
 import android.content.Context;
 import android.content.Intent;
 import android.graphics.Color;
+import android.hardware.Sensor;
+import android.hardware.SensorEvent;
+import android.hardware.SensorEventListener;
+import android.hardware.SensorManager;
 import android.support.v4.app.NotificationCompat;
 import android.text.TextUtils;
+import android.text.method.Touch;
 import android.util.Log;
+import android.widget.TextView;
+import android.widget.Toast;
 
 import com.google.android.gms.location.Geofence;
 import com.google.android.gms.location.GeofenceStatusCodes;
@@ -20,11 +27,15 @@ import java.util.ArrayList;
 import java.util.List;
 
 
-public class GeofenceTrasitionService extends IntentService {
+public class GeofenceTrasitionService extends IntentService implements SensorEventListener{
 
-    private int EnterStep;
-    private int ExitStep;
-    private int TotalStep;
+    private SensorManager sm;
+    private int bounderStep;
+    private int label;
+
+    //Counter for library and for Fullerlab
+    public static int LibraryCounter=0;
+    public static int FullerlabCounter=0;
 
     private static final String TAG = GeofenceTrasitionService.class.getSimpleName();
 
@@ -38,7 +49,7 @@ public class GeofenceTrasitionService extends IntentService {
     protected void onHandleIntent(Intent intent) {
         GeofencingEvent geofencingEvent = GeofencingEvent.fromIntent(intent);
         // Handling errors
-        TotalStep = intent.getIntExtra("Step",0);
+        sm = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         if ( geofencingEvent.hasError() ) {
             String errorMsg = getErrorString(geofencingEvent.getErrorCode() );
             Log.e( TAG, errorMsg );
@@ -52,10 +63,10 @@ public class GeofenceTrasitionService extends IntentService {
             // Get the geofence that were triggered
             List<Geofence> triggeringGeofences = geofencingEvent.getTriggeringGeofences();
 
-            String geofenceTransitionDetails = getGeofenceTrasitionDetails(geoFenceTransition, triggeringGeofences );
+            String geofenceTransitionDetails = getGeofenceTrasitionDetails(geoFenceTransition, triggeringGeofences);
 
             // Send notification details as a String
-            sendNotification( geofenceTransitionDetails );
+            sendNotification(geofenceTransitionDetails);
         }
     }
 
@@ -69,10 +80,21 @@ public class GeofenceTrasitionService extends IntentService {
 
         String status = null;
         if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_ENTER ) {
+            bounderStep = 0;
             status = "Entering ";
+            Sensor sensor = sm.getDefaultSensor(Sensor.TYPE_STEP_COUNTER);
+            if(sensor!=null){
+                sm.registerListener(this,sensor,SensorManager.SENSOR_DELAY_UI,0);
+            }
+            if (triggeringGeofences.get(0).getRequestId().toString().equals("Library")){
+                label = 0;
+            }else{
+                label = 1;
+            }
         }
-        else if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT )
+        else if ( geoFenceTransition == Geofence.GEOFENCE_TRANSITION_EXIT ) {
             status = "Exiting ";
+        }
         return status + TextUtils.join( ", ", triggeringGeofencesList);
     }
 
@@ -125,5 +147,31 @@ public class GeofenceTrasitionService extends IntentService {
             default:
                 return "Unknown error.";
         }
+    }
+
+    //Implementation of step counter
+    @Override
+    public void onSensorChanged(SensorEvent event){
+            bounderStep++;
+            if(bounderStep==6) {
+                //Deal with the Library
+                if(label==0) {
+                    Toast.makeText(this, "You have take 6 steps inside the " +
+                            "Gorden Library Geofence,incrementing counter", Toast.LENGTH_SHORT)
+                            .show();
+                    LibraryCounter++;
+                }else{
+                    //Deal with the FullerLab
+                    Toast.makeText(this,"You have take 6 steps inside the " +
+                            "Fullber Lab Geofence,incrementing counter",Toast.LENGTH_SHORT)
+                            .show();
+                    FullerlabCounter++;
+                }
+            }
+    }
+
+    @Override
+    public void onAccuracyChanged(Sensor sensor,int accuracy){
+
     }
 }
