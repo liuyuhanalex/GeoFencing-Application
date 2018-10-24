@@ -96,7 +96,7 @@ public class MainActivity extends AppCompatActivity
     private TextView textView;
     private TextView textView2;
 
-    private LatLng Library = new LatLng(42.2742207,-71.8087328);
+    private LatLng Library = new LatLng(42.270426,-71.8127675);
     private LatLng FullerLabs = new LatLng(42.2750591,-71.8086925);
 
 
@@ -563,7 +563,7 @@ public class MainActivity extends AppCompatActivity
     }
 
     private void handleUserActivity(int type, int confidence) {
-        String label = getString(R.string.activity_still);
+        String label = "None";
 
         switch (type) {
             case DetectedActivity.RUNNING: {
@@ -579,7 +579,7 @@ public class MainActivity extends AppCompatActivity
                 break;
             }
             default: {
-                label = getString(R.string.activity_still);
+                label=lastlabel;
                 break;
             }
         }
@@ -587,10 +587,9 @@ public class MainActivity extends AppCompatActivity
         Log.e(TAG, "User activity: " + label + ", Confidence: " + confidence);
 
         if (confidence > Constants.CONFIDENCE) {
-            if(label!=lastlabel){
+            if(label!=lastlabel&&label!="None"){
                 textView3.setText("Your are "+label);
                 interval = System.currentTimeMillis()-timerecorder;
-                Toast.makeText(this,"You have "+lastlabel +" for "+(interval/1000)+" seconds",Toast.LENGTH_SHORT).show();
                 timerecorder = System.currentTimeMillis();
                 if(label==getString(R.string.activity_running)){
                     imageView.setImageResource(R.drawable.running);
@@ -598,6 +597,9 @@ public class MainActivity extends AppCompatActivity
                     imageView.setImageResource(R.drawable.walking);
                 }else{
                     imageView.setImageResource(R.drawable.still);
+                }
+                if(lastlabel!="None") {
+                    Toast.makeText(this, "You have " + lastlabel + " for " + (interval / 1000) + " seconds", Toast.LENGTH_SHORT).show();
                 }
                 lastlabel = label;
             }
