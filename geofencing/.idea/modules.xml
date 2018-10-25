@@ -3,7 +3,7 @@
   <component name="ProjectModuleManager">
     <modules>
       <module fileurl="file://$PROJECT_DIR$/app/app.iml" filepath="$PROJECT_DIR$/app/app.iml" />
-      <module fileurl="file://$PROJECT_DIR$/geofencing(pro).iml" filepath="$PROJECT_DIR$/geofencing(pro).iml" />
+      <module fileurl="file://$PROJECT_DIR$/geofencing.iml" filepath="$PROJECT_DIR$/geofencing.iml" />
     </modules>
   </component>
 </project>
